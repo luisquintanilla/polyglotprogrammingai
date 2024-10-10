@@ -8,11 +8,15 @@ using Microsoft.DotNet.Interactive.ValueSharing;
 using Microsoft.SemanticKernel;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.DotNet.Interactive.CSharp;
 using Kernel = Microsoft.DotNet.Interactive.Kernel;
 using SKernel = Microsoft.SemanticKernel.Kernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.CodeAnalysis.Scripting;
+using System.Reflection;
+using System.Text.RegularExpressions;
 #pragma warning disable SKEXP0040
 
 namespace Interactive.Prompty;
@@ -123,5 +127,98 @@ public class PromptyOrchestratorKernel : Kernel,
         context.Publish(valueInfosProduced);
 
         return Task.CompletedTask;
+    }
+
+    public static IEnumerable<KernelPlugin> GeneratePluginFromKernel(CSharpKernel csharpKernel)
+    {
+        List<KernelPlugin> plugins = [];
+        var scripts = new Queue<Script>([csharpKernel.ScriptState.Script]);
+        var typeSet = new HashSet<string>();
+        var topLevelFunctionSet = new HashSet<string>();
+        while (scripts.Count > 0)
+        {
+            var script = scripts.Dequeue();
+            if (script.Previous != null)
+            {
+                scripts.Enqueue(script.Previous);
+            }
+
+            using var memoryStream = new MemoryStream();
+            script.GetCompilation().Emit(memoryStream);
+            var assembly = Assembly.Load(memoryStream.ToArray());
+
+            // find all methods with [KernelFunction] attribute using reflection
+            var methodInfos = assembly.GetTypes()
+                .Where(t => typeSet.Add(CreatePluginName(t)))
+                .SelectMany(t => t.GetMethods())
+                .Where(m => m.GetCustomAttribute<KernelFunctionAttribute>() != null)
+                .ToList();
+
+            var kernelFunctions = methodInfos
+                .GroupBy(m => CreatePluginName(m.DeclaringType!))
+                .Select(
+                    g =>
+                    {
+                        var isTopLevel = g.Key.StartsWith("Submission_");
+                        return new
+                        {
+                            PluginName = g.Key,
+                            Methods = g
+                                .Where(m => !isTopLevel || topLevelFunctionSet.Add(m.Name))
+                                .Select(m => KernelFunctionFactory.CreateFromMethod(m,
+                                    m.IsStatic ? null : Activator.CreateInstance(m.DeclaringType!, args: [])))
+                                .ToArray()
+                        };
+                    });
+
+            foreach (var kernelFunction in kernelFunctions.Where(g => g.Methods.Length > 0))
+            {
+                var kernelPlugin =
+                    KernelPluginFactory.CreateFromFunctions(pluginName: kernelFunction.PluginName,
+                        kernelFunction.Methods);
+                plugins.Add(kernelPlugin);
+            }
+        }
+
+        return plugins;
+
+        static string CreatePluginName(Type type)
+        {
+            var name = type.Name;
+            if (type.IsGenericType)
+            {
+                // Simple representation of generic arguments, without recurring into their generics
+                var builder = new StringBuilder();
+                AppendWithoutArity(builder, name);
+
+                var genericArgs = type.GetGenericArguments();
+                foreach (var t in genericArgs)
+                {
+                    builder.Append('_');
+                    AppendWithoutArity(builder, t.Name);
+                }
+
+                name = builder.ToString();
+
+                static void AppendWithoutArity(StringBuilder builder, string name)
+                {
+                    var tickPos = name.IndexOf('`');
+                    if (tickPos >= 0)
+                    {
+                        builder.Append(name, 0, tickPos);
+                    }
+                    else
+                    {
+                        builder.Append(name);
+                    }
+                }
+            }
+
+            // Replace invalid characters
+
+            name = Regex.Replace(name, "[^0-9A-Za-z_]", "_");
+
+            return name;
+        }
     }
 }
