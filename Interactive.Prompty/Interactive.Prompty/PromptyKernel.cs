@@ -1,4 +1,9 @@
-﻿using Microsoft.DotNet.Interactive;
+﻿
+
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.DotNet.Interactive;
 using Microsoft.DotNet.Interactive.Commands;
 using Microsoft.DotNet.Interactive.Events;
 using Microsoft.DotNet.Interactive.Formatting;
@@ -13,6 +18,7 @@ public class PromptyKernel : Kernel,
     IKernelCommandHandler<RequestValueInfos>
 {
     private string _promptyCode;
+    private Dictionary<string, object> _values = new();
 
     public PromptyKernel(string name) : base(name)
     {
@@ -23,6 +29,23 @@ public class PromptyKernel : Kernel,
     Task IKernelCommandHandler<SubmitCode>.HandleAsync(SubmitCode command, KernelInvocationContext context)
     {
         _promptyCode = command.Code;
+        _values = new();
+
+        if (!string.IsNullOrWhiteSpace(_promptyCode))
+        {
+            var prompty = PromptyParser.Parse<PromptyMetadata>(_promptyCode);
+
+
+            if (prompty.Sample is IDictionary<string, object> samples)
+            {
+                foreach (var (key, sampleValue) in samples)
+                {
+                    _values[key] = sampleValue;
+                }
+            }
+        }
+
+        _values["configuration"] = _promptyCode;
         return Task.CompletedTask;
     }
 
@@ -34,9 +57,9 @@ public class PromptyKernel : Kernel,
 
     Task IKernelCommandHandler<RequestValue>.HandleAsync(RequestValue command, KernelInvocationContext context)
     {
-        if (command.Name == "configuration")
+        if (_values.TryGetValue(command.Name, out var value))
         {
-            var valueProduced = new ValueProduced(command: command, value: _promptyCode, name: "configuration", formattedValue: new FormattedValue(PlainTextFormatter.MimeType, _promptyCode));
+            var valueProduced = new ValueProduced(command: command, value: value, name: command.Name, formattedValue: FormattedValue.CreateSingleFromObject(value, command.MimeType));
             context.Publish(valueProduced);
         }
         return Task.CompletedTask;
@@ -45,10 +68,10 @@ public class PromptyKernel : Kernel,
     Task IKernelCommandHandler<RequestValueInfos>.HandleAsync(RequestValueInfos command, KernelInvocationContext context)
     {
         var valueInfosProduced = new ValueInfosProduced(command: command, valueInfos: [
-            new KernelValueInfo("configuration", new FormattedValue(PlainTextFormatter.MimeType, _promptyCode))
-            ]);
+            .._values.Select(kvp => new KernelValueInfo(kvp.Key, FormattedValue.CreateSingleFromObject(kvp.Value, PlainTextSummaryFormatter.MimeType)))
+        ]);
 
         context.Publish(valueInfosProduced);
         return Task.CompletedTask;
     }
-}
+} 

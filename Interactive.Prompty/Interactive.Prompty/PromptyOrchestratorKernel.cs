@@ -1,10 +1,13 @@
-﻿using Microsoft.DotNet.Interactive;
+﻿using System.Collections.Generic;
+using System.Linq;
+using Microsoft.DotNet.Interactive;
 using Microsoft.DotNet.Interactive.Commands;
 using Microsoft.DotNet.Interactive.Events;
 using Microsoft.DotNet.Interactive.Formatting;
 using Microsoft.DotNet.Interactive.ValueSharing;
 using Microsoft.SemanticKernel;
 using System.Text;
+using System.Threading.Tasks;
 using Kernel = Microsoft.DotNet.Interactive.Kernel;
 using SKernel = Microsoft.SemanticKernel.Kernel;
 #pragma warning disable SKEXP0040
@@ -50,18 +53,26 @@ public class PromptyOrchestratorKernel : Kernel,
             _promptyCode = promptyCode;
 
             _kernelFunction = _kernel.CreateFunctionFromPrompty(_promptyCode);
-            var prompty = PromptyParser.Parse<PromptyMetadata>(promptyCode);
 
-            if (prompty.Sample is IDictionary<string, object> samples)
+            result =
+                await Root.SendAsync(new RequestKernelInfo(_promptyKernel), context.CancellationToken);
+
+
+            var valuesToGet = result.Events.OfType<ValueInfosProduced>().SingleOrDefault();
+            if (valuesToGet is not null)
             {
-                foreach (var (key, sampleValue) in samples)
+                foreach (var valueInfo in valuesToGet.ValueInfos)
                 {
-                    if (sampleValue is object)
-                    {
-                        _values[key] = sampleValue;
-                    }
+                    result =
+                        await Root.SendAsync(new RequestValue(valueInfo.Name, mimeType: PlainTextFormatter.MimeType,
+                            _promptyKernel), context.CancellationToken);
+
+                    value = result.Events.OfType<ValueProduced>().Single();
+
+                    _values[valueInfo.Name] = value.FormattedValue.Value;
                 }
             }
+
         }
 
         _values["input"] = command.Code;
