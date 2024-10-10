@@ -55,7 +55,7 @@ public class PromptyOrchestratorKernel : Kernel,
             _kernelFunction = _kernel.CreateFunctionFromPrompty(_promptyCode);
 
             result =
-                await Root.SendAsync(new RequestKernelInfo(_promptyKernel), context.CancellationToken);
+                await Root.SendAsync(new RequestValueInfos(_promptyKernel), context.CancellationToken);
 
 
             var valuesToGet = result.Events.OfType<ValueInfosProduced>().SingleOrDefault();

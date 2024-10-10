@@ -59,7 +59,7 @@ public class PromptyKernel : Kernel,
     {
         if (_values.TryGetValue(command.Name, out var value))
         {
-            var valueProduced = new ValueProduced(command: command, value: value, name: command.Name, formattedValue: FormattedValue.CreateSingleFromObject(value, command.MimeType));
+            var valueProduced = new ValueProduced(command: command, value: value, name: command.Name, formattedValue: FormattedValue.CreateSingleFromObject(value, command.MimeType ?? PlainTextFormatter.MimeType));
             context.Publish(valueProduced);
         }
         return Task.CompletedTask;
@@ -68,7 +68,7 @@ public class PromptyKernel : Kernel,
     Task IKernelCommandHandler<RequestValueInfos>.HandleAsync(RequestValueInfos command, KernelInvocationContext context)
     {
         var valueInfosProduced = new ValueInfosProduced(command: command, valueInfos: [
-            .._values.Select(kvp => new KernelValueInfo(kvp.Key, FormattedValue.CreateSingleFromObject(kvp.Value, PlainTextSummaryFormatter.MimeType)))
+            .._values.Select(kvp => new KernelValueInfo(kvp.Key, FormattedValue.CreateSingleFromObject(kvp.Value, command.MimeType ?? PlainTextSummaryFormatter.MimeType)))
         ]);
 
         context.Publish(valueInfosProduced);
