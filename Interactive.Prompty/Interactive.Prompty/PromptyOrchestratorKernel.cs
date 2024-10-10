@@ -44,12 +44,24 @@ IKernelCommandHandler<SubmitCode>
 
         var promptyCode = value.FormattedValue.Value;
 
+
         if (promptyCode != _promptyCode)
         {
             _promptyCode = promptyCode;
 
             _kernelFunction = _kernel.CreateFunctionFromPrompty(_promptyCode);
+            var prompty = PromptyParser.Parse<PromptyMetadata>(promptyCode);
 
+            if (prompty.Sample is IDictionary<string, object> samples)
+            {
+                foreach (var (key, sampleValue) in samples)
+                {
+                    if (sampleValue is object)
+                    {
+                        _values[key] = sampleValue;
+                    }
+                }
+            }
         }
 
         _values["input"] = command.Code;

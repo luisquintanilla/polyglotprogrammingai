@@ -1,0 +1,12 @@
+<Project>
+<PropertyGroup>
+    <RepoRoot>$(MSBuildThisFileDirectory)..\</RepoRoot>
+  </PropertyGroup>
+
+  <ItemGroup  Condition="'$(IsTestProject)' == 'true'">
+    <Content Include="$(RepoRoot)\basic.prompty">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
+  </ItemGroup>
+</Project>

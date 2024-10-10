@@ -3,7 +3,7 @@ using Markdig.Extensions.Yaml;
 using Markdig.Syntax;
 using YamlDotNet.Serialization;
 
-internal class PromptyParser
+public class PromptyParser
 {
     public static T Parse<T>(string prompty)
     {
