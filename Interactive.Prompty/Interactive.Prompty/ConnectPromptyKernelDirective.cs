@@ -14,6 +14,7 @@ public class ConnectPromptyKernelDirective : ConnectKernelDirective<ConnectPromp
     {
         var kernelName = connectCommand.ConnectedKernelName;
         var kernel = new PromptyKernel(kernelName);
+        kernel.UseValueSharing();
       
         return Task.FromResult<IEnumerable<Kernel>>([kernel]);
     }

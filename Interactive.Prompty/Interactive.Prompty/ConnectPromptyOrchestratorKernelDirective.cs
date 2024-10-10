@@ -33,6 +33,7 @@ public class ConnectPromptyOrchestratorKernelDirective : ConnectKernelDirective<
     public override Task<IEnumerable<Kernel>> ConnectKernelsAsync(ConnectPromptyOrchestratorKernel connectCommand, KernelInvocationContext context)
     {
         var kernel = new PromptyOrchestratorKernel(connectCommand.ConnectedKernelName, connectCommand.PromptyKernelName, connectCommand.AzureOpenAiApiKey, connectCommand.AzureOpenAiEndpoint, connectCommand.AzureOpenAiDeploymentName);
+        kernel.UseValueSharing();
         return Task.FromResult<IEnumerable<Kernel>>([kernel]);
     }
 }
