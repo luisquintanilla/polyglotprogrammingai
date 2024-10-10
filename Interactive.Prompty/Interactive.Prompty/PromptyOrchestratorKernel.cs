@@ -10,6 +10,9 @@ using System.Text;
 using System.Threading.Tasks;
 using Kernel = Microsoft.DotNet.Interactive.Kernel;
 using SKernel = Microsoft.SemanticKernel.Kernel;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 #pragma warning disable SKEXP0040
 
 namespace Interactive.Prompty;
@@ -33,8 +36,8 @@ public class PromptyOrchestratorKernel : Kernel,
         _kernel = SKernel.CreateBuilder().AddAzureOpenAIChatCompletion(
             deploymentName: azureOpenAiDeploymentName,
             endpoint: azureOpenAiEndpoint,
-            apiKey: azureOpenAiApiKey
-            ).Build();
+            apiKey: azureOpenAiApiKey)
+            .Build();
     }
 
     async Task IKernelCommandHandler<SubmitCode>.HandleAsync(SubmitCode command, KernelInvocationContext context)
@@ -53,6 +56,12 @@ public class PromptyOrchestratorKernel : Kernel,
             _promptyCode = promptyCode;
 
             _kernelFunction = _kernel.CreateFunctionFromPrompty(_promptyCode);
+
+            var promptyKernelPlugin = KernelPluginFactory.CreateFromFunctions(
+                pluginName: "prompties",
+                [_kernelFunction]);
+
+            _kernel.Plugins.Add(promptyKernelPlugin);
 
             result =
                 await Root.SendAsync(new RequestValueInfos(_promptyKernel), context.CancellationToken);
@@ -76,8 +85,17 @@ public class PromptyOrchestratorKernel : Kernel,
         }
 
         _values["input"] = command.Code;
+        var chatService = _kernel.GetRequiredService<IChatCompletionService>();
 
-        KernelArguments args = new(_values);
+        KernelArguments args = new(new AzureOpenAIPromptExecutionSettings
+        {
+            ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
+        });
+
+        foreach (var argValue in _values)
+        {
+            args.Add(argValue.Key, argValue.Value);
+        }
 
         StringBuilder fullContent = new();
         var displayThing = context.Display(fullContent.ToString(), [PlainTextFormatter.MimeType]);
