@@ -46,6 +46,7 @@ public class PromptyOrchestratorKernel : Kernel,
 
     async Task IKernelCommandHandler<SubmitCode>.HandleAsync(SubmitCode command, KernelInvocationContext context)
     {
+
         var result =
             await Root.SendAsync(new RequestValue("configuration", mimeType: PlainTextFormatter.MimeType,
                 _promptyKernel), context.CancellationToken);
@@ -88,6 +89,18 @@ public class PromptyOrchestratorKernel : Kernel,
 
         }
 
+        var csharpKernel = Root.FindKernelByName("csharp") as CSharpKernel;
+
+        if (csharpKernel is not null)
+        {
+            _kernel.Plugins.Clear();
+            var plugins = GeneratePluginFromKernel(csharpKernel);
+            foreach (var plugin in plugins)
+            {
+                _kernel.Plugins.Add(plugin);
+            }
+        }
+
         _values["input"] = command.Code;
         var chatService = _kernel.GetRequiredService<IChatCompletionService>();
 
@@ -125,6 +138,15 @@ public class PromptyOrchestratorKernel : Kernel,
             valueInfos: values.ToArray());
 
         context.Publish(valueInfosProduced);
+
+        var pluginValues = _kernel.Plugins.SelectMany(p => p)
+            .Select(p => new KernelValueInfo(p.Name, new FormattedValue(PlainTextFormatter.MimeType, p.Description)));
+
+        var pluginValueInfosProduced = new ValueInfosProduced(
+            command: command,
+            valueInfos: pluginValues.ToArray());
+
+        context.Publish(pluginValueInfosProduced);
 
         return Task.CompletedTask;
     }
