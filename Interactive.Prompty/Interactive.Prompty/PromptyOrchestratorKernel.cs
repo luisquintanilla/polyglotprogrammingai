@@ -133,20 +133,16 @@ public class PromptyOrchestratorKernel : Kernel,
     public Task HandleAsync(RequestValueInfos command, KernelInvocationContext context)
     {
         var values = _values.Select(x => new KernelValueInfo(x.Key, new FormattedValue(PlainTextFormatter.MimeType, x.Value?.ToString() ?? string.Empty)));
-        var valueInfosProduced = new ValueInfosProduced(
-            command: command,
-            valueInfos: values.ToArray());
 
-        context.Publish(valueInfosProduced);
 
         var pluginValues = _kernel.Plugins.SelectMany(p => p)
             .Select(p => new KernelValueInfo(p.Name, new FormattedValue(PlainTextFormatter.MimeType, p.Description)));
 
-        var pluginValueInfosProduced = new ValueInfosProduced(
-            command: command,
-            valueInfos: pluginValues.ToArray());
+        var valueInfosProduced = new ValueInfosProduced(
+    command: command,
+    valueInfos: values.Concat(pluginValues).ToArray());
 
-        context.Publish(pluginValueInfosProduced);
+        context.Publish(valueInfosProduced);
 
         return Task.CompletedTask;
     }
