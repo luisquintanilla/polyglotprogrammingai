@@ -166,7 +166,12 @@ public class PromptyOrchestratorKernel : Kernel,
             }
 
             using var memoryStream = new MemoryStream();
-            script.GetCompilation().Emit(memoryStream);
+            var result = script.GetCompilation().Emit(memoryStream);
+            if (!result.Success)
+            {
+                continue;
+            }
+
             var assembly = Assembly.Load(memoryStream.ToArray());
 
             // find all methods with [KernelFunction] attribute using reflection
