@@ -85,7 +85,20 @@ You are helping {{firstName}} to find answers to their questions.
 Use their name to address them in your responses.
 
 # Context
-Use the following context to provide a more personalized response to {{firstName}}:
+Resolve the problem in the context and provide a more personalized response to {{firstName}}:
+
+Here are a few tips to keep in mind when using Z3.Linq library:
+- Don't create anonymous class after select. After you resolve the result, simply print the result to console.
+- Use top-level statement. Don't use `let` in Linq.
+- Always use `using` statement rather than `using` declarations.
+e.g. 
+```csharp
+using (var ctx = new Z3Context())
+{
+    // xxxx
+}
+```
+
 {{context}}
 
 user:

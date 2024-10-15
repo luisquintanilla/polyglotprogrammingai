@@ -121,7 +121,6 @@ public class PromptyOrchestratorKernel : Kernel,
             fullContent.Append(content);
             displayThing.Update(fullContent.ToString());
         }
-
     }
 
     Task IKernelCommandHandler<SendValue>.HandleAsync(SendValue command, KernelInvocationContext context)
@@ -133,7 +132,6 @@ public class PromptyOrchestratorKernel : Kernel,
     public Task HandleAsync(RequestValueInfos command, KernelInvocationContext context)
     {
         var values = _values.Select(x => new KernelValueInfo(x.Key, new FormattedValue(PlainTextFormatter.MimeType, x.Value?.ToString() ?? string.Empty)));
-
 
         var pluginValues = _kernel.Plugins.SelectMany(p => p)
             .Select(p => new KernelValueInfo(p.Name, new FormattedValue(PlainTextFormatter.MimeType, p.Description)));
