@@ -33,12 +33,12 @@ public class PromptyKernel : Kernel,
 
         if (!string.IsNullOrWhiteSpace(_promptyCode))
         {
-            var prompty = PromptyParser.Parse<PromptyMetadata>(_promptyCode);
+            var promptyMetadata = PromptyParser.Parse<PromptyMetadata>(_promptyCode);
 
 
-            if (prompty.Sample is IDictionary<string, object> samples)
+            if (promptyMetadata?.Sample is not null)
             {
-                foreach (var (key, sampleValue) in samples)
+                foreach (var (key, sampleValue) in promptyMetadata.Sample)
                 {
                     _values[key] = sampleValue;
                 }
