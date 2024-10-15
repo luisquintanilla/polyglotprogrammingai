@@ -6,7 +6,7 @@ namespace Interactive.Prompty;
 
 public class ConnectPromptyOrchestratorKernelDirective : ConnectKernelDirective<ConnectPromptyOrchestratorKernel>
 {
-    public ConnectPromptyOrchestratorKernelDirective() : base("promptyOrchestrator", "it does things")
+    public ConnectPromptyOrchestratorKernelDirective() : base("prompty-orchestrator", "it does things")
     {
         var kernelDirectiveParameter = new KernelDirectiveParameter("--prompty-kernel-name", "the prompty kernel to bind to the orchestrator");
 
