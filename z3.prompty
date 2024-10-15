@@ -80,6 +80,48 @@ using (var ctx = new Z3Context())
 }
 ```
 
+## Problem 3 - Price Optimised Oil Purchasing
+
+In this example, we have two  countries that produce crude oil which we refine into three end-products: gasoline, jet fuel, and lubricant. The crude oil from each country yields different quantities of end-products once the oil is refined:
+
+|            | Saudi Arabia  | Venezuela      |
+|---         | ---           | ---            |
+| Cost       | $20 / barrel  | $15 / barrel   |
+| Max Order  | 9000 barrels  | 6000 barrels   |
+| Refining % | 30% gasolene  | 40% gasolene   |
+|            | 40% jet fuel  | 20% jet fuel   |
+|            | 20% lubricant | 30% lubricant  |
+|            | 10% waste     | 10% waste      |
+
+Given we need to produce the following volume of refined end-product:
+
+| Product   | Amount (barrels) |
+| ---       | ---              |
+| Gasolene  | 1900             |
+| Jet Fuel  | 1500             |
+| Lubricant | 500              |
+
+ What is the most cost efficient purchase strategy of crude oil from Saudi Arabia and Venezuela?
+
+## Solution for Problem 3
+```csharp
+using (var ctx = new Z3Context())
+{
+    var theorem = from t in ctx.NewTheorem<(double sa, double vz)>()
+                  where 0.3 * t.sa + 0.4 * t.vz >= 1900 // Gasolene
+                  where 0.4 * t.sa + 0.2 * t.vz >= 1500 // Jet fuel
+                  where 0.2 * t.sa + 0.3 * t.vz >= 500  // Lubricant
+                  where 0 <= t.sa && t.sa <= 9000 // Max # barrels we can purchase
+                  where 0 <= t.vz && t.vz <= 6000 // Max # barrels we can purchase
+                  orderby (20.0 * t.sa) + (15.0 * t.vz)
+                  select t;
+
+    var result = theorem.Solve();
+
+    Console.WriteLine(string.Create(CultureInfo.CreateSpecificCulture("en-US"), $"Saudia Arabia: {result.sa} barrels ({(result.sa * 20):C}), Venezuela: {result.vz} barrels ({(result.vz * 15):C})"));
+}
+```
+
 # Customer
 You are helping {{firstName}} to find answers to their questions.
 Use their name to address them in your responses.
@@ -89,8 +131,14 @@ Resolve the problem in the context and provide a more personalized response to {
 
 Here are a few tips to keep in mind when using Z3.Linq library:
 - Don't create anonymous class after select. After you resolve the result, simply print the result to console.
-- Use top-level statement. Don't use `let` in Linq.
+- Use top-level statement.
 - Always use `using` statement rather than `using` declarations.
+- Don't use `let` statement in Linq.
+- The only available fields for `t` is `X1`, `X2`, `X3` and so on. All other fields are unavailable.
+- Response and equations should be formated using latex
+- Use `orderby` statement when optimize the theorem
+- Always include the using statement for Z3.Linq, Z3.Linq.Example
+
 e.g. 
 ```csharp
 using (var ctx = new Z3Context())
