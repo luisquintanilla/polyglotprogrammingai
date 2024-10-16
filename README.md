@@ -1,6 +1,7 @@
 # PolyglotProgrammingAI
 
-PolyglotProgrammingAI is a project that demonstrates the integration of various programming languages and AI capabilities within a single interactive environment. It leverages .NET Interactive, Semantic Kernel, and Z3 theorem prover to create a powerful and flexible development experience.
+PolyglotProgrammingAI is a project that demonstrates the integration of various programming languages and AI capabilities within a single interactive environment. It leverages [.NET Interactive](https://github.com/dotnet/interactive), Semantic Kernel, and [Z3 Linq Bindings](https://github.com/endjin/Z3.Linq) to create a powerful and flexible development experience.
+
 
 ## Features
 
