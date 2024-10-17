@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Interactive.Prompty", "Inte
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Interactive.Prompty.Tests", "Interactive.Prompty.Tests\Interactive.Prompty.Tests.csproj", "{12BD6ED7-C309-43B9-B5E4-83E9776CE483}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WeatherService", "WeatherService\WeatherService.csproj", "{E7B995D5-7BB0-4279-8A66-FAC73A48C5C8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WeatherForecastingService", "WeatherService\WeatherForecastingService.csproj", "{4B6D1463-7774-4910-B553-190B900C3B7A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,10 +23,10 @@ Global
 		{12BD6ED7-C309-43B9-B5E4-83E9776CE483}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{12BD6ED7-C309-43B9-B5E4-83E9776CE483}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{12BD6ED7-C309-43B9-B5E4-83E9776CE483}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E7B995D5-7BB0-4279-8A66-FAC73A48C5C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E7B995D5-7BB0-4279-8A66-FAC73A48C5C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E7B995D5-7BB0-4279-8A66-FAC73A48C5C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E7B995D5-7BB0-4279-8A66-FAC73A48C5C8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4B6D1463-7774-4910-B553-190B900C3B7A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4B6D1463-7774-4910-B553-190B900C3B7A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4B6D1463-7774-4910-B553-190B900C3B7A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4B6D1463-7774-4910-B553-190B900C3B7A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
