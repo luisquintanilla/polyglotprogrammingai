@@ -47,31 +47,37 @@ public class PromptyOrchestratorKernel : Kernel,
     async Task IKernelCommandHandler<SubmitCode>.HandleAsync(SubmitCode command, KernelInvocationContext context)
     {
 
+        // Request the configuration from the prompty kernel
         var result =
             await Root.SendAsync(new RequestValue("configuration", mimeType: PlainTextFormatter.MimeType,
                 _promptyKernel), context.CancellationToken);
 
+        // Extract the configuration value
         var value = result.Events.OfType<ValueProduced>().Single();
-
         var promptyCode = value.FormattedValue.Value;
 
-
+        // Check if the prompty code has changed
         if (promptyCode != _promptyCode)
         {
+            // Update the stored prompty code
             _promptyCode = promptyCode;
 
+            // Create a new kernel function from the updated prompty code
             _kernelFunction = _kernel.CreateFunctionFromPrompty(_promptyCode);
 
+            // Create a new kernel plugin with the updated function
             var promptyKernelPlugin = KernelPluginFactory.CreateFromFunctions(
                 pluginName: "prompties",
                 [_kernelFunction]);
 
+            // Add the new plugin to the kernel
             _kernel.Plugins.Add(promptyKernelPlugin);
 
+            // Request value infos from the prompty kernel
             result =
                 await Root.SendAsync(new RequestValueInfos(_promptyKernel), context.CancellationToken);
 
-
+            // Extract and store values from the prompty kernel
             var valuesToGet = result.Events.OfType<ValueInfosProduced>().SingleOrDefault();
             if (valuesToGet is not null)
             {
@@ -86,36 +92,55 @@ public class PromptyOrchestratorKernel : Kernel,
                     _values[valueInfo.Name] = value.FormattedValue.Value;
                 }
             }
-
         }
 
+        // Find the C# kernel
         var csharpKernel = Root.FindKernelByName("csharp") as CSharpKernel;
 
         if (csharpKernel is not null)
         {
+            // Clear all existing plugins from the kernel
+            // This ensures we start with a clean slate
             _kernel.Plugins.Clear();
+
+            // Generate new plugins from the C# kernel
+            // This creates plugin representations of functions defined in the C# kernel
             var plugins = GeneratePluginFromKernel(csharpKernel);
+
+            // Iterate through each generated plugin
             foreach (var plugin in plugins)
             {
+                // Add each new plugin to the kernel
+                // This populates the kernel with fresh plugins derived from the C# kernel
                 _kernel.Plugins.Add(plugin);
             }
+            // The result is that the kernel now has an updated set of plugins
+            // reflecting the current state of the C# kernel
         }
 
+        // Store the input code
         _values["input"] = command.Code;
+
+        // Get the chat completion service
         var chatService = _kernel.GetRequiredService<IChatCompletionService>();
 
+        // Set up kernel arguments with Azure OpenAI settings
         KernelArguments args = new(new AzureOpenAIPromptExecutionSettings
         {
             ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
         });
 
+        // Add stored values to the kernel arguments
         foreach (var argValue in _values)
         {
             args.Add(argValue.Key, argValue.Value);
         }
 
+        // Prepare for streaming output
         StringBuilder fullContent = new();
         var displayThing = context.Display(fullContent.ToString(), [PlainTextFormatter.MimeType]);
+
+        // Stream the kernel function output
         await foreach (var content in _kernelFunction.InvokeStreamingAsync(_kernel, args, context.CancellationToken))
         {
             fullContent.Append(content);
@@ -145,12 +170,19 @@ public class PromptyOrchestratorKernel : Kernel,
         return Task.CompletedTask;
     }
 
+
+    /// <summary>
+    /// Generates a collection of KernelPlugins from a CSharpKernel.
+    /// </summary>
+    /// <param name="csharpKernel">The CSharpKernel to generate plugins from.</param>
+    /// <returns>An IEnumerable of KernelPlugin objects.</returns>
     public static IEnumerable<KernelPlugin> GeneratePluginFromKernel(CSharpKernel csharpKernel)
     {
         List<KernelPlugin> plugins = [];
         var scripts = new Queue<Script>([csharpKernel.ScriptState.Script]);
         var typeSet = new HashSet<string>();
         var topLevelFunctionSet = new HashSet<string>();
+
         while (scripts.Count > 0)
         {
             var script = scripts.Dequeue();
@@ -159,6 +191,7 @@ public class PromptyOrchestratorKernel : Kernel,
                 scripts.Enqueue(script.Previous);
             }
 
+            // Compile the script to an in-memory assembly
             using var memoryStream = new MemoryStream();
             var result = script.GetCompilation().Emit(memoryStream);
             if (!result.Success)
@@ -168,13 +201,14 @@ public class PromptyOrchestratorKernel : Kernel,
 
             var assembly = Assembly.Load(memoryStream.ToArray());
 
-            // find all methods with [KernelFunction] attribute using reflection
+            // Find all methods with [KernelFunction] attribute using reflection
             var methodInfos = assembly.GetTypes()
                 .Where(t => typeSet.Add(CreatePluginName(t)))
                 .SelectMany(t => t.GetMethods())
                 .Where(m => m.GetCustomAttribute<KernelFunctionAttribute>() != null)
                 .ToList();
 
+            // Group methods by plugin name and create KernelFunctions
             var kernelFunctions = methodInfos
                 .GroupBy(m => CreatePluginName(m.DeclaringType!))
                 .Select(
@@ -192,6 +226,7 @@ public class PromptyOrchestratorKernel : Kernel,
                         };
                     });
 
+            // Create KernelPlugins from the grouped functions
             foreach (var kernelFunction in kernelFunctions.Where(g => g.Methods.Length > 0))
             {
                 var kernelPlugin =
@@ -202,6 +237,7 @@ public class PromptyOrchestratorKernel : Kernel,
         }
 
         return plugins;
+
 
         static string CreatePluginName(Type type)
         {
@@ -221,6 +257,11 @@ public class PromptyOrchestratorKernel : Kernel,
 
                 name = builder.ToString();
 
+                /// <summary>
+                /// Appends the name without arity information to the StringBuilder.
+                /// </summary>
+                /// <param name="builder">The StringBuilder to append to.</param>
+                /// <param name="name">The name to append.</param>
                 static void AppendWithoutArity(StringBuilder builder, string name)
                 {
                     var tickPos = name.IndexOf('`');
@@ -235,8 +276,7 @@ public class PromptyOrchestratorKernel : Kernel,
                 }
             }
 
-            // Replace invalid characters
-
+            // Replace invalid characters with underscores
             name = Regex.Replace(name, "[^0-9A-Za-z_]", "_");
 
             return name;
