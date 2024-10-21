@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.DotNet.Interactive" Version="1.0.0-beta.24516.1" />
-    <PackageReference Include="Microsoft.DotNet.Interactive.CSharp" Version="1.0.0-beta.24516.1" />
+    <PackageReference Include="Microsoft.DotNet.Interactive" Version="1.0.0-beta.24521.1" />
+    <PackageReference Include="Microsoft.DotNet.Interactive.CSharp" Version="1.0.0-beta.24521.1" />
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.22.0" />
     <PackageReference Include="Microsoft.SemanticKernel.Prompty" Version="1.22.0-alpha" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
