@@ -1,14 +1,12 @@
 ---
-name: ExamplePrompt
-description: A prompt that uses context to ground an incoming question
+name: Z3 Pro
+description: A prompty that uses Z3.Linq to resolve constraints
 authors:
-  - Seth Juarez
+  - Diego & XiaoYun
 model:
   api: chat
   configuration:
     type: azure_openai
-    azure_endpoint: ${env:AZURE_OPENAI_ENDPOINT}
-    azure_deployment: <your-deployment>
   parameters:
     max_tokens: 3000
 sample:
@@ -80,45 +78,53 @@ using (var ctx = new Z3Context())
 }
 ```
 
-## Problem 3 - Price Optimised Oil Purchasing
+## Problem 3 - Minimizing Shipping Costs
 
-In this example, we have two  countries that produce crude oil which we refine into three end-products: gasoline, jet fuel, and lubricant. The crude oil from each country yields different quantities of end-products once the oil is refined:
+In this example, you want to minimize the cost of shipping goods from 2 different warehouses to 4 different customers. Each warehouse has a limited supply and each customer has a certain demand.
 
-|            | Saudi Arabia  | Venezuela      |
-|---         | ---           | ---            |
-| Cost       | $20 / barrel  | $15 / barrel   |
-| Max Order  | 9000 barrels  | 6000 barrels   |
-| Refining % | 30% gasolene  | 40% gasolene   |
-|            | 40% jet fuel  | 20% jet fuel   |
-|            | 20% lubricant | 30% lubricant  |
-|            | 10% waste     | 10% waste      |
+Cost of shipping ($ per product):
+|             | Customer 1 | Customer 2 | Customer 3 | Customer 4 |
+|-------------|------------|------------|------------|------------|
+| Warehouse 1 | $1.00      | $3.00      | $0.50      | $4.00      |
+| Warehouse 2 | $2.50      | $5.00      | $1.50      | $2.50      |
 
-Given we need to produce the following volume of refined end-product:
+Number of products shipped:
+|                     | Customer 1 | Customer 2  | Customer 3 | Customer 4 | Total shipped |    | Available |
+|---------------------|------------|-------------|------------|------------|---------------|----|-----------|
+| Warehouse 1         | 0          | 13,000      | 15,000     | 32,000     | 60,000        | <= | 60,000    |
+| Warehouse 2         | 30,000     | 10,000      | 0          | 0          | 40,000        | <= | 80,000    |
+| Total received      | 30,000     | 23,000      | 15,000     | 32,000     |               |    |           |
+| Ordered             | 35,000     | 22,000      | 18,000     | 30,000     |               |    |           |
+| Total Shipping Cost |            | $299,500.00 |            |            |               |    |           |
 
-| Product   | Amount (barrels) |
-| ---       | ---              |
-| Gasolene  | 1900             |
-| Jet Fuel  | 1500             |
-| Lubricant | 500              |
-
- What is the most cost efficient purchase strategy of crude oil from Saudi Arabia and Venezuela?
+1. The objective is to minimize the cost (Total Shipping Cost).
+2. The variables are the number of products to ship from each warehouse to each customer.
+3. The constraints are the number of products ordered and the number of products available in each warehouse.
 
 ## Solution for Problem 3
 ```csharp
 using (var ctx = new Z3Context())
 {
-    var theorem = from t in ctx.NewTheorem<(double sa, double vz)>()
-                  where 0.3 * t.sa + 0.4 * t.vz >= 1900 // Gasolene
-                  where 0.4 * t.sa + 0.2 * t.vz >= 1500 // Jet fuel
-                  where 0.2 * t.sa + 0.3 * t.vz >= 500  // Lubricant
-                  where 0 <= t.sa && t.sa <= 9000 // Max # barrels we can purchase
-                  where 0 <= t.vz && t.vz <= 6000 // Max # barrels we can purchase
-                  orderby (20.0 * t.sa) + (15.0 * t.vz)
-                  select t;
+  var theorem =
+  from t in ctx.NewTheorem<(double w1c1, double w1c2, double w1c3, double w1c4, double w2c1, double w2c2, double w2c3, double w2c4)>()
+  where t.w1c1 + t.w1c2 + t.w1c3 + t.w1c4 <= 60_000 // Warehouse 1 Product Availability
+  where t.w2c1 + t.w2c2 + t.w2c3 + t.w2c4 <= 80_000 // Warehouse 2 Product Availability
+  where t.w1c1 + t.w2c1 == 35_000 && (t.w1c1 >= 0 && t.w2c1 >= 0) // Customer 1 Orders
+  where t.w1c2 + t.w2c2 == 22_000 && (t.w1c2 >= 0 && t.w2c2 >= 0) // Customer 2 Orders
+  where t.w1c3 + t.w2c3 == 18_000 && (t.w1c3 >= 0 && t.w2c3 >= 0) // Customer 3 Orders
+  where t.w1c4 + t.w2c4 == 30_000 && (t.w1c4 >= 0 && t.w2c4 >= 0) // Customer 4 Orders
+  orderby (1.00 * t.w1c1) + (3.00 * t.w1c2) + (0.50 * t.w1c3) + (4.00 * t.w1c4) +
+          (2.50 * t.w2c1) + (5.00 * t.w2c2) + (1.50 * t.w2c3) + (2.50 * t.w2c4) // Optimize for Total Shipping Cost
+  select t;
 
-    var result = theorem.Solve();
-
-    Console.WriteLine(string.Create(CultureInfo.CreateSpecificCulture("en-US"), $"Saudia Arabia: {result.sa} barrels ({(result.sa * 20):C}), Venezuela: {result.vz} barrels ({(result.vz * 15):C})"));
+  var result = theorem.Solve();
+  
+  Console.WriteLine($"|                     | Customer 1 | Customer 2  | Customer 3 | Customer 4 |");
+  Console.WriteLine($"|---------------------|------------|-------------|------------|------------|");
+  Console.WriteLine($"| Warehouse 1         | {result.w1c1}      | {result.w1c2}       |  {result.w1c3}      | {result.w1c4}          |");
+  Console.WriteLine($"| Warehouse 2         | {result.w2c1}          | {result.w2c2}           | {result.w2c3}      | {result.w2c4}      |");
+  Console.WriteLine();
+  Console.WriteLine(string.Create(CultureInfo.CreateSpecificCulture("en-US"), $"Total Cost: {1.00 * result.w1c1 + 3.00 * result.w1c2 + 0.50 * result.w1c3 + 4.00 * result.w1c4 + 2.50 * result.w2c1 + 5.00 * result.w2c2 + 1.50 * result.w2c3 + 2.50 * result.w2c4:C}"));
 }
 ```
 
