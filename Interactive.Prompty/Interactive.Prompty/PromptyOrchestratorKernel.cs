@@ -128,6 +128,8 @@ public class PromptyOrchestratorKernel : Kernel,
         KernelArguments args = new(new AzureOpenAIPromptExecutionSettings
         {
             ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
+            Temperature = 0,
+            Seed = 51234,
         });
 
         // Add stored values to the kernel arguments
