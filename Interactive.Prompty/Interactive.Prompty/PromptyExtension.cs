@@ -6,8 +6,8 @@ public class PromptyExtension
 {
     public static Task LoadExtensionAsync(CompositeKernel compositeKernel, CancellationToken cancellationToken = default)
     {
-        compositeKernel.AddKernelConnector(new ConnectPromptyKernelDirective());
-        compositeKernel.AddKernelConnector(new ConnectPromptyOrchestratorKernelDirective());
+        compositeKernel.AddConnectDirective(new ConnectPromptyKernelDirective());
+        compositeKernel.AddConnectDirective(new ConnectPromptyOrchestratorKernelDirective());
 
         return Task.CompletedTask;
     }

@@ -10,7 +10,7 @@ public class ConnectPromptyOrchestratorKernelDirective : ConnectKernelDirective<
     {
         var kernelDirectiveParameter = new KernelDirectiveParameter("--prompty-kernel-name", "the prompty kernel to bind to the orchestrator");
 
-        kernelDirectiveParameter.AddCompletions(context =>
+        kernelDirectiveParameter.AddCompletions(() =>
         {
             List<string> availableKernels = [];
             Kernel.Root.VisitSubkernelsAndSelf(k =>
